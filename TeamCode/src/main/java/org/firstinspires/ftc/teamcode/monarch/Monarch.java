@@ -27,6 +27,7 @@ public class Monarch extends OpMode {
         frontRight = hardwareMap.get(DcMotor.class, "motorFrontRight");
         frontLeft = hardwareMap.get(DcMotor.class, "motorBackLeft");
         backRight = hardwareMap.get(DcMotor.class, "motorBackRight");
+
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -87,6 +88,13 @@ public class Monarch extends OpMode {
 
     }
 
+    private void mecanumDrive() {
+        double forward = -gamepad1.left_stick_y;
+        double right = gamepad1.left_stick_x;
+        double rotate = gamepad1.right_stick_x;
+
+
+    }
     /*
      * Code to run ONCE after the driver hits STOP
      */
