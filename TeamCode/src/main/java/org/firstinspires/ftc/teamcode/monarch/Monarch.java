@@ -67,7 +67,7 @@ public class Monarch extends OpMode {
         telemetry.update();
     }
 
-// drive mecanum robot centric - copy-pasted from basic thing at this current moment because we just need to spit stuff out
+// drive mecanum robot centric
     private void drive() {
 
 
@@ -103,9 +103,7 @@ public class Monarch extends OpMode {
             denom = max / speed_modifier;
         }
 
-   // increment max speed by like .1 and cooldown between presses -- or something idk  how it reads input - cap speed differently i dont really understand
-        // how it does it currently but it has to get done
-        // cap power abs
+
 
         // Send calculated power to wheels
         frontLeft.setPower(frontLeftPower/denom);
