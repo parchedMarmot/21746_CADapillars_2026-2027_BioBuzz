@@ -90,7 +90,7 @@ public class Monarch extends OpMode {
             speed_modifier+=.1;
             speed_modifier = Math.min(1.0,speed_modifier);
         }
-     // do I need to maintain a ratio?? because of the mecanum
+
 
         //max of all of them
         double max;
