@@ -17,6 +17,7 @@ public class Monarch extends OpMode {
     private DcMotor frontLeft = null;
     private DcMotor backRight = null;
     private DcMotor intake = null;
+    private DcMotor midtake = null;
 
     double speed_modifier = 1.0; // scale the speed
 
@@ -112,6 +113,7 @@ public class Monarch extends OpMode {
         backRight.setPower(backRightPower/denom);
 
         intake.setPower(gamepad1.left_trigger);
+        midtake.setPower(gamepad1.right_trigger);
 
         telemetry.addData("Speed-Cap", speed_modifier);
         telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
