@@ -72,13 +72,11 @@ public class Monarch extends OpMode {
     private void drive() {
 
 
-        // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
+        // input for speed and driving control
         double axial   = -gamepad1.left_stick_y;
         double lateral =  gamepad1.left_stick_x;
         double yaw     =  gamepad1.right_stick_x;
 
-        // Combine the joystick requests for each axis-motion to determine each wheel's power.
-        // Set up a variable for each drive wheel to save the power level for telemetry.
         double frontLeftPower  = axial + lateral + yaw;
         double frontRightPower = axial - lateral - yaw;
         double backLeftPower   = axial - lateral + yaw;
@@ -92,33 +90,37 @@ public class Monarch extends OpMode {
             speed_modifier = Math.min(1.0,speed_modifier);
         }
 
-
-        //max of all of them
+        //Modify and keep power under 1.0
         double max;
         max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
         max = Math.max(max, Math.abs(backLeftPower));
         max = Math.max(max, Math.abs(backRightPower));
 
+        //should result in speed being capped at 1, which is max motor can have
+        // ex. 3 / 1.0  = 3 as denom equation- but div by denom, 3/3 = 1 -- so it should be good since 3 is the highest possible input
         double denom = 1.0;
         if (max>speed_modifier){
             denom = max / speed_modifier;
         }
-
-
+        double calcFrontLeftPower = (frontLeftPower/denom);
+        double calcFrontRightPower = (frontRightPower/denom);
+        double calcBackLeftPower = (backLeftPower/denom);
+        double calcBackRightPower = (backRightPower/denom);
 
         // Send calculated power to wheels
-        frontLeft.setPower(frontLeftPower/denom);
-        frontRight.setPower(frontRightPower/denom);
-        backLeft.setPower(backLeftPower/denom);
-        backRight.setPower(backRightPower/denom);
+        frontLeft.setPower(calcFrontLeftPower);
+        frontRight.setPower(calcFrontRightPower);
+        backLeft.setPower(calcBackLeftPower);
+        backRight.setPower(calcBackRightPower);
 
         intake.setPower(gamepad1.left_trigger);
         midtake.setPower(gamepad1.right_trigger);
 
         telemetry.addData("Speed-Cap", speed_modifier);
-        telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
-        telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
-
+        telemetry.addData("Front left/Right", "%4.2f, %4.2f", calcFrontLeftPower, calcFrontRightPower);
+        telemetry.addData("Back  left/Right", "%4.2f, %4.2f", calcBackLeftPower, calcBackRightPower);
+        telemetry.addData("Intake Power", intake.getPower());
+        telemetry.addData("Midtake Power", midtake.getPower());
     }
     /*
      * Code to run ONCE after the driver hits STOP
