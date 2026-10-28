@@ -1,16 +1,12 @@
 package org.firstinspires.ftc.teamcode.monarch;
 
-import android.renderscript.ScriptGroup;
-
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@TeleOp(name="Monarch v1.0.3", group="Monarch")
+@TeleOp(name="Monarch v1.1.0", group="Monarch")
 public class Monarch extends OpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -23,7 +19,8 @@ public class Monarch extends OpMode {
     private DcMotor launch = null;
 
     double speed_modifier = 1.0; // scale the speed
-    ElapsedTime InputCoolDown = new ElapsedTime();
+    ElapsedTime SpeedInputCD = new ElapsedTime();
+    ElapsedTime LaunchInputCD = new ElapsedTime();
     ElapsedTime LaunchTimer = new ElapsedTime();
     /*
      * Code to run ONCE when the driver hits INIT
@@ -33,18 +30,25 @@ public class Monarch extends OpMode {
         telemetry.addData("Status", "Initializing");
 
         // Initialize all  motors
-        backLeft = hardwareMap.get(DcMotor.class, "motorFrontLeft");
+        backLeft = hardwareMap.get(DcMotor.class, "motorBackLeft");
         frontRight = hardwareMap.get(DcMotor.class, "motorFrontRight");
-        frontLeft = hardwareMap.get(DcMotor.class, "motorBackLeft");
+        frontLeft = hardwareMap.get(DcMotor.class, "motorFrontLeft");
         backRight = hardwareMap.get(DcMotor.class, "motorBackRight");
         intake = hardwareMap.get(DcMotor.class, "intake");
         midtake = hardwareMap.get(DcMotor.class, "midtake");
         launch = hardwareMap.get(DcMotor.class, "launch");
 
-
-
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        // I actually believe these are defaults; but it makes code easier to understand
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        launch.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -70,36 +74,36 @@ public class Monarch extends OpMode {
      */
     @Override
     public void loop() {
-        telemetry.addData("Version", "1.0.4");
+        telemetry.addData("Version", "1.1.0");
 
         drive();
         jankLaunch();
         telemetry.update();
     }
 
-    private double launchPower;
-    private void jankLaunch(){ // please replace with pid system later cuz this is so jank it is incredible
-        //I would do it now but i dont want to make something hard to debug cuz ill be gone and my brain is fried.
-        if (gamepad1.a && InputCoolDown.seconds()>.35){
+    private double launchPower = .5;
+    private void jankLaunch(){ // please replace with pid system later
+        if (gamepad1.a && LaunchInputCD.seconds()>.35){
             launchPower+=.1;
 
-            InputCoolDown.reset();
-        } else if (gamepad1.b && InputCoolDown.seconds()>.35){
+            LaunchInputCD.reset();
+        } else if (gamepad1.b && LaunchInputCD.seconds()>.35){
             launchPower-=.1;
 
-            InputCoolDown.reset();
+            LaunchInputCD.reset();
         }
 
         telemetry.addData("launchPower", launchPower);
 
-        // This code is so trash it is insane
+        //we keep the launch power in check
+        launchPower = Math.max(0.0,(Math.min(1.0,launchPower)));
 
         if (gamepad1.y){
-            LaunchTimer.reset(); // i should really use a different timer here
+            LaunchTimer.reset();
 
             launch.setPower(launchPower);
 
-        } else if (launch.getPower()!=0.0){
+        } else if (launch.getPower()>.05){
             if (LaunchTimer.seconds()>.3){
                 launch.setPower(0.0);
             }
@@ -108,7 +112,7 @@ public class Monarch extends OpMode {
     }
 
 
-// drive mecanum robot centric
+// drive Mecanum robot centric
     private void drive() {
 
 
@@ -122,16 +126,16 @@ public class Monarch extends OpMode {
         double backLeftPower   = axial - lateral + yaw;
         double backRightPower  = axial + lateral - yaw;
 
-        if (gamepad1.left_bumper&&InputCoolDown.seconds()>.35){
+        if (gamepad1.left_bumper&& SpeedInputCD.seconds()>.35){
             speed_modifier-=.1;
             speed_modifier = Math.max(.1,speed_modifier);
 
-            InputCoolDown.reset();
-        } else if (gamepad1.right_bumper&&InputCoolDown.seconds()>.35){
+            SpeedInputCD.reset();
+        } else if (gamepad1.right_bumper&& SpeedInputCD.seconds()>.35){
             speed_modifier+=.1;
             speed_modifier = Math.min(1.0,speed_modifier);
 
-            InputCoolDown.reset();
+            SpeedInputCD.reset();
         }
 
         //Modify and keep power under 1.0
@@ -140,16 +144,13 @@ public class Monarch extends OpMode {
         max = Math.max(max, Math.abs(backLeftPower));
         max = Math.max(max, Math.abs(backRightPower));
 
-        //should result in speed being capped at 1, which is max motor can have
-        // ex. 3 / 1.0  = 3 as denom equation- but div by denom, 3/3 = 1 -- so it should be good since 3 is the highest possible input
-        double denom = 1.0;
-        if (max>speed_modifier){
-            denom = max / speed_modifier;
-        }
-        double calcFrontLeftPower = (frontLeftPower/denom);
-        double calcFrontRightPower = (frontRightPower/denom);
-        double calcBackLeftPower = (backLeftPower/denom);
-        double calcBackRightPower = (backRightPower/denom);
+        //much better and simpler way to cap
+        double denominator = Math.max(1.0,max);
+
+        double calcFrontLeftPower = (frontLeftPower/denominator)*speed_modifier;
+        double calcFrontRightPower = (frontRightPower/denominator)*speed_modifier;
+        double calcBackLeftPower = (backLeftPower/denominator)*speed_modifier;
+        double calcBackRightPower = (backRightPower/denominator)*speed_modifier;
 
         // Send calculated power to wheels
         frontLeft.setPower(calcFrontLeftPower);
@@ -164,9 +165,7 @@ public class Monarch extends OpMode {
         telemetry.addData("Front left/Right", "%4.2f, %4.2f", calcFrontLeftPower, calcFrontRightPower);
         telemetry.addData("Back  left/Right", "%4.2f, %4.2f", calcBackLeftPower, calcBackRightPower);
         telemetry.addData("Intake Power", intake.getPower());
-        telemetry.addData("Midtake Power", midtake.getPower());
-
-        telemetry.update(); // possibly redundant but none of this code has been tested at the moment so i am not trying to find out
+        telemetry.addData("Mid-take Power", midtake.getPower());
     }
     /*
      * Code to run ONCE after the driver hits STOP
