@@ -16,12 +16,15 @@ public class Monarch extends OpMode {
     private DcMotor backRight = null;
     private DcMotor intake = null;
     private DcMotor midtake = null;
-    private DcMotor launch = null;
+    //private DcMotor launch = null;
 
     double speed_modifier = 1.0; // scale the speed
     ElapsedTime SpeedInputCD = new ElapsedTime();
     ElapsedTime LaunchInputCD = new ElapsedTime();
     ElapsedTime LaunchTimer = new ElapsedTime();
+
+    private double launchPower = .5;
+
     /*
      * Code to run ONCE when the driver hits INIT
      */
@@ -36,19 +39,20 @@ public class Monarch extends OpMode {
         backRight = hardwareMap.get(DcMotor.class, "motorBackRight");
         intake = hardwareMap.get(DcMotor.class, "intake");
         midtake = hardwareMap.get(DcMotor.class, "midtake");
-        launch = hardwareMap.get(DcMotor.class, "launch");
+        //launch = hardwareMap.get(DcMotor.class, "launch");
 
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
         frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // I actually believe these are defaults; but it makes code easier to understand
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        launch.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //launch.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -81,14 +85,13 @@ public class Monarch extends OpMode {
         telemetry.update();
     }
 
-    private double launchPower = .5;
-    private void jankLaunch(){ // please replace with pid system later
-        if (gamepad1.a && LaunchInputCD.seconds()>.35){
-            launchPower+=.1;
+    private void jankLaunch() { // please replace with pid system later
+        if (gamepad1.a && LaunchInputCD.seconds() > .35) {
+            launchPower += .1;
 
             LaunchInputCD.reset();
-        } else if (gamepad1.b && LaunchInputCD.seconds()>.35){
-            launchPower-=.1;
+        } else if (gamepad1.b && LaunchInputCD.seconds() > .35) {
+            launchPower -= .1;
 
             LaunchInputCD.reset();
         }
@@ -96,19 +99,20 @@ public class Monarch extends OpMode {
         telemetry.addData("launchPower", launchPower);
 
         //we keep the launch power in check
-        launchPower = Math.max(0.0,(Math.min(1.0,launchPower)));
+        launchPower = Math.max(0.0, (Math.min(1.0, launchPower)));
 
-        if (gamepad1.y){
+        if (gamepad1.y) {
             LaunchTimer.reset();
 
-            launch.setPower(launchPower);
+            //launch.setPower(launchPower);
 
-        } else if (launch.getPower()>.05){
-            if (LaunchTimer.seconds()>.3){
-                launch.setPower(0.0);
-            }
+            // } else if (launch.getPower()>.05){
+            //   if (LaunchTimer.seconds()>.3){
+            //     launch.setPower(0.0);
+            //}
+            //}
+
         }
-
     }
 
 
