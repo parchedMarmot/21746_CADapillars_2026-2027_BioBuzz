@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.monarch;
 
+import android.renderscript.ScriptGroup;
+
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -18,9 +20,11 @@ public class Monarch extends OpMode {
     private DcMotor backRight = null;
     private DcMotor intake = null;
     private DcMotor midtake = null;
+    private DcMotor launch = null;
 
     double speed_modifier = 1.0; // scale the speed
-
+    ElapsedTime InputCoolDown = new ElapsedTime();
+    ElapsedTime LaunchTimer = new ElapsedTime();
     /*
      * Code to run ONCE when the driver hits INIT
      */
@@ -28,12 +32,16 @@ public class Monarch extends OpMode {
     public void init() {
         telemetry.addData("Status", "Initializing");
 
-        // Initialize all 4 motors
+        // Initialize all  motors
         backLeft = hardwareMap.get(DcMotor.class, "motorFrontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "motorFrontRight");
         frontLeft = hardwareMap.get(DcMotor.class, "motorBackLeft");
         backRight = hardwareMap.get(DcMotor.class, "motorBackRight");
         intake = hardwareMap.get(DcMotor.class, "intake");
+        midtake = hardwareMap.get(DcMotor.class, "midtake");
+        launch = hardwareMap.get(DcMotor.class, "launch");
+
+
 
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -65,8 +73,40 @@ public class Monarch extends OpMode {
         telemetry.addData("Version", "1.0.4");
 
         drive();
+        jankLaunch();
         telemetry.update();
     }
+
+    private double launchPower;
+    private void jankLaunch(){ // please replace with pid system later cuz this is so jank it is incredible
+        //I would do it now but i dont want to make something hard to debug cuz ill be gone and my brain is fried.
+        if (gamepad1.a && InputCoolDown.seconds()>.35){
+            launchPower+=.1;
+
+            InputCoolDown.reset();
+        } else if (gamepad1.b && InputCoolDown.seconds()>.35){
+            launchPower-=.1;
+
+            InputCoolDown.reset();
+        }
+
+        telemetry.addData("launchPower", launchPower);
+
+        // This code is so trash it is insane
+
+        if (gamepad1.y){
+            LaunchTimer.reset(); // i should really use a different timer here
+
+            launch.setPower(launchPower);
+
+        } else if (launch.getPower()!=0.0){
+            if (LaunchTimer.seconds()>.3){
+                launch.setPower(0.0);
+            }
+        }
+
+    }
+
 
 // drive mecanum robot centric
     private void drive() {
@@ -82,12 +122,16 @@ public class Monarch extends OpMode {
         double backLeftPower   = axial - lateral + yaw;
         double backRightPower  = axial + lateral - yaw;
 
-        if (gamepad1.left_bumper){
+        if (gamepad1.left_bumper&&InputCoolDown.seconds()>.35){
             speed_modifier-=.1;
             speed_modifier = Math.max(.1,speed_modifier);
-        } else if (gamepad1.right_bumper){
+
+            InputCoolDown.reset();
+        } else if (gamepad1.right_bumper&&InputCoolDown.seconds()>.35){
             speed_modifier+=.1;
             speed_modifier = Math.min(1.0,speed_modifier);
+
+            InputCoolDown.reset();
         }
 
         //Modify and keep power under 1.0
@@ -121,6 +165,8 @@ public class Monarch extends OpMode {
         telemetry.addData("Back  left/Right", "%4.2f, %4.2f", calcBackLeftPower, calcBackRightPower);
         telemetry.addData("Intake Power", intake.getPower());
         telemetry.addData("Midtake Power", midtake.getPower());
+
+        telemetry.update(); // possibly redundant but none of this code has been tested at the moment so i am not trying to find out
     }
     /*
      * Code to run ONCE after the driver hits STOP
